@@ -61,3 +61,65 @@ void Append() {
         currentNode->data[len - 1] = '\0';
     }
 }
+
+void newLine(int cap) {
+
+    Node* newNode = (Node*)malloc(sizeof(Node));
+
+    newNode->next = NULL;
+    newNode->capacity = cap;
+    newNode->data = NULL;
+
+    currentNode->next = newNode;
+
+    size_t lengths = 0;
+
+    if (currentNode->data == NULL) {
+
+        currentNode->data = (char*)malloc(currentNode->capacity * sizeof(char));
+
+        currentNode->data[lengths] = '\n';
+        currentNode->data[lengths + 1] = '\0';
+
+        currentNode = newNode;
+    }
+    else {
+
+        lengths = strlen(currentNode->data);
+
+        if (lengths > 0 && currentNode->data[lengths - 1] == '\n') {
+
+            currentNode = newNode;
+            printf("New line is started\n");
+        }
+        else {
+
+            if (lengths + 2 > currentNode->capacity) {
+                currentNode->capacity += 20;
+                char* result = realloc(currentNode->data, currentNode->capacity);
+
+                if (result == NULL) {
+                    printf("Memory allocation error.");
+                    currentNode->next = NULL;
+                    free(newNode);
+                    return;
+                }
+                currentNode->data = result;
+            }
+
+            currentNode->data[lengths] = '\n';
+            currentNode->data[lengths + 1] = '\0';
+
+            currentNode = newNode;
+            printf("New line is started\n");
+
+        }
+    }
+}
+int main() {
+    currentNode = (Node*)malloc(sizeof(Node));
+    currentNode->next = NULL;
+    currentNode->data = NULL;
+    currentNode->capacity = 20;
+    head = currentNode;
+}
