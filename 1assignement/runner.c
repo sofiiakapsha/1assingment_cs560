@@ -157,6 +157,77 @@ void Save() {
     }
 }
 
+void Load() {
+    FILE* file;
+
+    int capacityLoader = 20;
+
+    char fileName[50];
+
+    printf("Enter file name:\n");
+    scanf("%s", fileName);
+
+    while (getchar() != '\n');
+
+    file = fopen(fileName, "r");
+
+    if (file == NULL) {
+        printf("Error opening file");
+    }
+
+    else {
+
+        if (head->data != NULL) {
+
+            printf("All unsaved information will be deleted.");
+            Node* deletingNode = head;
+
+            while (deletingNode != NULL) {
+
+                currentNode = deletingNode->next;
+                free(deletingNode->data);
+                free(deletingNode);
+                deletingNode = currentNode;
+            }
+
+            currentNode = (Node*)malloc(sizeof(Node));
+            currentNode->next = NULL;
+            currentNode->data = NULL;
+            currentNode->capacity = 20;
+            head = currentNode;
+        }
+
+
+        currentNode = head;
+
+        char buffer[50];
+
+        while (fgets(buffer, 50, file) != NULL) {
+
+            if (currentNode->data == NULL) {
+                currentNode->data = (char*)malloc(currentNode->capacity * sizeof(char));
+                currentNode->data[0] = '\0';
+            }
+
+            if (currentNode->data != NULL && strlen(buffer) + strlen(currentNode->data) + 1 > currentNode->capacity) {
+
+                currentNode->capacity += 50;
+                currentNode->data = realloc(currentNode->data, currentNode->capacity);
+
+            }
+
+            strcat(currentNode->data, buffer);
+
+            if (currentNode->data[strlen(currentNode->data) - 1] == '\n') {
+                newLine(currentNode->capacity);
+            }
+        }
+
+        fclose(file);
+        printf("Text has been loaded successfully.\n");
+    }
+}
+
 
 int main() {
     currentNode = (Node*)malloc(sizeof(Node));
