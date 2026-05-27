@@ -241,6 +241,90 @@ void Print() {
     }
 }
 
+void Insert() {
+
+    int line, index;
+    char* text;
+    int capacity = 20;
+    Node* countingNode = head;
+    int counter = 0;
+
+    text = (char*)malloc(capacity * sizeof(char));
+
+    printf("Choose line and index:\n");
+    scanf("%d %d", &line, &index);
+
+    while (getchar() != '\n');
+
+    printf("Enter text to insert:\n");
+    fgets(text, capacity, stdin);
+
+    while (text[strlen(text) - 1] != '\n') {
+        capacity += 20;
+        text = realloc(text, capacity);
+        size_t lengths = strlen(text);
+        fgets(text + lengths, capacity - lengths, stdin);
+    }
+
+    text[strlen(text) - 1] = '\0';
+
+    while (countingNode != NULL && counter != line) {
+        countingNode = countingNode->next;
+        counter++;
+    }
+
+    if (countingNode == NULL) {
+        printf("Error: this line does not exist.\n");
+        free(text);
+        return;
+    }
+
+    size_t len = strlen(text);
+
+    if (countingNode->data != NULL) {
+
+        size_t dataLen = strlen(countingNode->data);
+
+        if (index < 0 || dataLen < index) {
+            printf("This index does not exist.\n");
+            free(text);
+            return;
+        }
+
+        if (dataLen + len + 1 > countingNode->capacity) {
+            countingNode->capacity += len + 1;
+            countingNode->data = realloc(countingNode->data, countingNode->capacity);
+        }
+
+        for (int i = dataLen; i >= index; i--) {
+            countingNode->data[i + len] = countingNode->data[i];
+        }
+
+        for (int i = index; i < len + index; i++) {
+            countingNode->data[i] = text[i - index];
+        }
+    }
+    else {
+
+        if (index != 0) {
+            printf("This index does not exist. Line is empty.\n");
+            free(text);
+            return;
+        }
+
+        countingNode->capacity = len + 1;
+
+        countingNode->data = (char*)malloc(countingNode->capacity * sizeof(char));
+
+        strncpy(countingNode->data, text, len);
+
+        countingNode->data[len] = '\0';
+    }
+
+    free(text);
+}
+
+
 int main() {
     currentNode = (Node*)malloc(sizeof(Node));
     currentNode->next = NULL;
