@@ -63,7 +63,7 @@ void Append() {
     }
 }
 
-void newLine(int cap) {
+void newLine(int cap, bool isPrinting) {
 
     Node* newNode = (Node*)malloc(sizeof(Node));
 
@@ -89,7 +89,7 @@ void newLine(int cap) {
         currentNode->data[lengths] = '\n';
         currentNode->data[lengths + 1] = '\0';
         currentNode = newNode;
-        printf("New line is started\n");
+        if (isPrinting) printf("New line is started\n");
     }
     else {
 
@@ -217,7 +217,7 @@ void Load() {
             strcat(currentNode->data, buffer);
 
             if (currentNode->data[strlen(currentNode->data) - 1] == '\n') {
-                newLine(currentNode->capacity);
+                newLine(currentNode->capacity, false);
             }
         }
 
@@ -324,6 +324,44 @@ void Insert() {
     free(text);
 }
 
+void Search() {
+
+    char target[50];
+    char* check;
+    Node* searchingNode = head;
+    int line = 0;
+    bool isFound = false;
+
+    printf("Enter the text to search:\n");
+    check = fgets(target, 50, stdin);
+
+    if (check == NULL) {
+        printf("Error: searching text is too long.\n");
+        return;
+    }
+    else {
+        size_t len = strlen(target);
+        if (len > 0 && target[len - 1] == '\n') {
+            target[len - 1] = '\0';
+        }
+    }
+
+    while (searchingNode != NULL) {
+        if (searchingNode->data != NULL) {
+            char* finder = strstr(searchingNode->data, target);
+            if (finder != NULL) {
+                printf("Text in position: %d %d\n", (int)line, (int)(finder - searchingNode->data));
+                isFound = true;
+            }
+        }
+        searchingNode = searchingNode->next;
+        line++;
+    }
+    if (isFound == false) {
+        printf("Not found.\n");
+    }
+}
+
 
 int main() {
     currentNode = (Node*)malloc(sizeof(Node));
@@ -331,4 +369,60 @@ int main() {
     currentNode->data = NULL;
     currentNode->capacity = 20;
     head = currentNode;
+
+    int answer;
+
+    while (1) {
+        printf("\nChoose the command:\n");
+        printf("1 - Append, 2 - newLine, 3 - Save, 4 - Load\n");
+        printf("5 - Print,  6 - Insert,  7 - Search, 8 - Exit\n");
+
+        scanf("%d", &answer);
+
+        while (getchar() != '\n');
+
+        switch (answer) {
+        case 1:
+            Append();
+            break;
+        case 2:
+            newLine(20, true);
+            break;
+        case 3:
+            Save();
+            break;
+        case 4:
+            Load();
+            break;
+        case 5:
+            Print();
+            break;
+        case 6:
+            Insert();
+            break;
+        case 7:
+            Search();
+            break;
+        case 8:
+
+        {
+            Node* deletingNode = head;
+
+            while (deletingNode != NULL) {
+
+                currentNode = deletingNode->next;
+                free(deletingNode->data);
+                free(deletingNode);
+                deletingNode = currentNode;
+            }
+            return 0;
+        }
+
+        default:
+            printf("Invalid command! Please try again.\n");
+            break;
+        }
+    }
+
+    return 0;
 }
