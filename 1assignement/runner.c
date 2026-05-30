@@ -97,7 +97,7 @@ void newLine(int cap, bool isPrinting) {
 
         if (lengths > 0 && currentNode->data[lengths - 1] == '\n') {
             currentNode = newNode;
-            printf("New line is started\n");
+            if (isPrinting) printf("New line is started\n");
         }
         else {
 
@@ -106,7 +106,7 @@ void newLine(int cap, bool isPrinting) {
                 char* result = realloc(currentNode->data, currentNode->capacity);
 
                 if (result == NULL) {
-                    printf("Memory allocation error.\n");
+                    if (isPrinting) printf("New line is started\n");
                     currentNode->next = NULL;
                     free(newNode);
                     return;
@@ -117,7 +117,7 @@ void newLine(int cap, bool isPrinting) {
             currentNode->data[lengths] = '\n';
             currentNode->data[lengths + 1] = '\0';
             currentNode = newNode;
-            printf("New line is started\n");
+            if (isPrinting) printf("New line is started\n");
         }
     }
 }
@@ -210,7 +210,14 @@ void Load() {
             if (currentNode->data != NULL && strlen(buffer) + strlen(currentNode->data) + 1 > currentNode->capacity) {
 
                 currentNode->capacity += 50;
-                currentNode->data = realloc(currentNode->data, currentNode->capacity);
+                char* test = realloc(currentNode->data, currentNode->capacity);
+
+                if (test == NULL) {
+                    printf("Memory allocation error.\n");
+                    return;
+                }
+
+                currentNode->data = test;
 
             }
 
@@ -261,7 +268,15 @@ void Insert() {
 
     while (text[strlen(text) - 1] != '\n') {
         capacity += 20;
-        text = realloc(text, capacity);
+        char* test_text = realloc(text, capacity);
+
+        if (test_text == NULL) {
+            printf("Memory allocation error.\n");
+            free(text);
+            return;
+        }
+
+        text = test_text;
         size_t lengths = strlen(text);
         fgets(text + lengths, capacity - lengths, stdin);
     }
@@ -293,7 +308,16 @@ void Insert() {
 
         if (dataLen + len + 1 > countingNode->capacity) {
             countingNode->capacity += len + 1;
-            countingNode->data = realloc(countingNode->data, countingNode->capacity);
+
+            char* test = realloc(countingNode->data, countingNode->capacity);
+            if (test == NULL) {
+                printf("Memory allocation error.\n");
+                free(text);
+                countingNode->capacity -= len + 1;
+                return;
+            }
+            countingNode->data = test;
+
         }
 
         for (int i = dataLen; i >= index; i--) {
