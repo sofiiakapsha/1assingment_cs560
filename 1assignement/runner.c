@@ -12,6 +12,8 @@ typedef struct Node {
 
 Node* currentNode;
 Node* head;
+char* past;
+Node* undoNode;
 
 void Append() {
     printf("Enter text to append:\n");
@@ -387,12 +389,81 @@ void Search() {
 }
 
 
+void DeleteAndCut(bool cut) {
+
+    int line = 0;
+    int index = 0;
+    int number = 0;
+
+    Node* deletingNode = head;
+    int counter = 0;
+
+    printf("Choose line, index and number of symbols:\n");
+    scanf("%d %d %d", &line, &index, &number);
+
+    while (getchar() != '\n');
+    
+
+    while (deletingNode != NULL && counter != line) {
+        deletingNode = deletingNode->next;
+        counter++;
+    }
+
+    if (deletingNode == NULL) {
+        printf("Error: this line does not exist.\n");
+        return;
+    }
+
+
+    if (deletingNode->data != NULL) {
+
+        size_t dataLen = strlen(deletingNode->data);
+
+        if (index < 0 || dataLen < index) {
+            printf("This index does not exist.\n");
+            return;
+        }
+
+        if (cut && number > 0) {
+
+            free(past);
+            past = (char*)malloc((number + 1) * sizeof(char));
+
+            for (int i = 0; i < number; i++) {
+
+                past[i] = deletingNode->data[index + i];
+            }
+
+            past[number] = '\0';
+        }
+
+        for (int i = index; i < dataLen - number; i++) {
+            deletingNode->data[i] = deletingNode->data[i + number];
+        }
+
+        deletingNode->data[dataLen - number] = '\0';
+
+        printf("Information deleted.\n");
+    }
+    else printf("No data in this line.\n");
+}
+
+void Undo() {
+}
+
+
 int main() {
     currentNode = (Node*)malloc(sizeof(Node));
     currentNode->next = NULL;
     currentNode->data = NULL;
     currentNode->capacity = 20;
     head = currentNode;
+
+    undoNode = (Node*)malloc(sizeof(Node));
+    undoNode->next = NULL;
+    undoNode->data = NULL;
+
+    past = (char*)malloc(20 * sizeof(char));
 
     int answer;
 
@@ -428,6 +499,9 @@ int main() {
             Search();
             break;
         case 8:
+            DeleteAndCut(false);
+            break;
+        case 9:
 
         {
             Node* deletingNode = head;
@@ -439,6 +513,8 @@ int main() {
                 free(deletingNode);
                 deletingNode = currentNode;
             }
+
+            free(past);
             return 0;
         }
 
