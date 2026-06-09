@@ -27,6 +27,112 @@ typedef struct UndoNode {
 UndoNode* curUndoNode;
 UndoNode* headUndoNode;
 
+void CreateUndoNode(Node* originNode, bool newNode) {
+
+    if (originNode == NULL) {
+        printf("Error: originNode is NULL\n");
+        return;
+    }
+
+    if (headUndoNode != curUndoNode) {
+        UndoNode* toDelete = headUndoNode;
+        while (toDelete != NULL && toDelete != curUndoNode) {
+            UndoNode* temp = toDelete;
+            toDelete = toDelete->nextUndo;
+            free(temp->data);
+            free(temp);
+        }
+
+        headUndoNode = curUndoNode;
+    }
+
+    UndoNode* newUndo = (UndoNode*)malloc(sizeof(UndoNode));
+    newUndo->nextUndo = NULL;
+    newUndo->data = NULL;
+    newUndo->prev = NULL;
+    newUndo->next = NULL;
+    newUndo->newLine = newNode;
+
+    newUndo->prev = originNode;
+    newUndo->capacity = originNode->capacity;
+    newUndo->next = originNode->next;
+
+    newUndo->data = (char*)malloc(originNode->capacity * sizeof(char));
+    if (originNode->data != NULL) {
+        strncpy(newUndo->data, originNode->data, originNode->capacity);
+    }
+    else {
+        newUndo->data[0] = '\0';
+    }
+
+    newUndo->nextUndo = curUndoNode;
+    curUndoNode = newUndo;
+    headUndoNode = curUndoNode;
+}
+
+
+void newLine(int cap, bool isPrinting) {
+
+    Node* newNode = (Node*)malloc(sizeof(Node));
+
+    newNode->next = NULL;
+    newNode->capacity = cap;
+    newNode->data = NULL;
+
+    currentNode->next = newNode;
+
+    size_t lengths = 0;
+
+    if (currentNode->data == NULL) {
+
+        currentNode->data = (char*)malloc(currentNode->capacity * sizeof(char));
+
+        if (currentNode->data == NULL) {
+            printf("Memory allocation error.\n");
+            free(newNode);
+            currentNode->next = NULL;
+            return;
+        }
+
+        CreateUndoNode(currentNode, true);
+
+        currentNode->data[lengths] = '\n';
+        currentNode->data[lengths + 1] = '\0';
+        currentNode = newNode;
+        if (isPrinting) printf("New line is started\n");
+    }
+    else {
+
+        lengths = strlen(currentNode->data);
+
+        if (lengths > 0 && currentNode->data[lengths - 1] == '\n') {
+            currentNode = newNode;
+            if (isPrinting) printf("New line is started\n");
+        }
+        else {
+
+            if (lengths + 2 > currentNode->capacity) {
+                currentNode->capacity += 20;
+                char* result = realloc(currentNode->data, currentNode->capacity);
+
+                if (result == NULL) {
+                    if (isPrinting) printf("New line is started\n");
+                    currentNode->next = NULL;
+                    free(newNode);
+                    return;
+                }
+                currentNode->data = result;
+            }
+
+            CreateUndoNode(currentNode, true);
+
+            currentNode->data[lengths] = '\n';
+            currentNode->data[lengths + 1] = '\0';
+            currentNode = newNode;
+            if (isPrinting) printf("New line is started\n");
+        }
+    }
+}
 
 void Append() {
     printf("Enter text to append:\n");
@@ -41,6 +147,11 @@ void Append() {
     }
 
     size_t len = strlen(currentNode->data);
+
+    if (len > 0 && currentNode->data[len - 1] == '\n') {
+        newLine(currentNode->capacity, false);
+    }
+
     CreateUndoNode(currentNode, false);
 
     if (currentNode->capacity - len <= 1) {
@@ -78,68 +189,6 @@ void Append() {
         currentNode->data[len - 1] = '\0';
     }
 }
-
-void newLine(int cap, bool isPrinting) {
-
-    Node* newNode = (Node*)malloc(sizeof(Node));
-
-    newNode->next = NULL;
-    newNode->capacity = cap;
-    newNode->data = NULL;
-
-    currentNode->next = newNode;
-
-    size_t lengths = 0;
-
-    CreateUndoNode(currentNode, true);
-
-    if (currentNode->data == NULL) {
-
-        currentNode->data = (char*)malloc(currentNode->capacity * sizeof(char));
-
-        if (currentNode->data == NULL) {
-            printf("Memory allocation error.\n");
-            free(newNode);
-            currentNode->next = NULL;
-            return;
-        }
-
-        currentNode->data[lengths] = '\n';
-        currentNode->data[lengths + 1] = '\0';
-        currentNode = newNode;
-        if (isPrinting) printf("New line is started\n");
-    }
-    else {
-
-        lengths = strlen(currentNode->data);
-
-        if (lengths > 0 && currentNode->data[lengths - 1] == '\n') {
-            currentNode = newNode;
-            if (isPrinting) printf("New line is started\n");
-        }
-        else {
-
-            if (lengths + 2 > currentNode->capacity) {
-                currentNode->capacity += 20;
-                char* result = realloc(currentNode->data, currentNode->capacity);
-
-                if (result == NULL) {
-                    if (isPrinting) printf("New line is started\n");
-                    currentNode->next = NULL;
-                    free(newNode);
-                    return;
-                }
-                currentNode->data = result;
-            }
-
-            currentNode->data[lengths] = '\n';
-            currentNode->data[lengths + 1] = '\0';
-            currentNode = newNode;
-            if (isPrinting) printf("New line is started\n");
-        }
-    }
-}
-
 
 void Save() {
 
@@ -356,6 +405,8 @@ void Insert() {
             return;
         }
 
+        CreateUndoNode(countingNode, false);
+
         countingNode->capacity = len + 1;
 
         countingNode->data = (char*)malloc(countingNode->capacity * sizeof(char));
@@ -437,7 +488,7 @@ void DeleteAndCut(bool cut) {
 
         size_t dataLen = strlen(deletingNode->data);
 
-        if (index < 0 || dataLen < index) {
+        if (index < 0 || index > dataLen || index + number > dataLen) {
             printf("This index does not exist.\n");
             return;
         }
@@ -468,43 +519,6 @@ void DeleteAndCut(bool cut) {
     else printf("No data in this line.\n");
 }
 
-
-void CreateUndoNode(Node* originNode, bool newNode) {
-
-    if (curUndoNode->nextUndo != NULL) {
-        UndoNode* toDelete = curUndoNode->nextUndo;
-        while (toDelete != NULL) {
-            UndoNode* temp = toDelete;
-            toDelete = toDelete->nextUndo;
-            free(temp->data);
-            free(temp);
-        }
-        curUndoNode->nextUndo = NULL;
-    }
-
-    UndoNode* newUndo = (UndoNode*)malloc(sizeof(UndoNode));
-    newUndo->nextUndo = NULL;
-    newUndo->data = NULL;
-    newUndo->prev = NULL;
-    newUndo->next = NULL;
-    newUndo->newLine = newNode;
-
-    newUndo->prev = originNode;
-    newUndo->capacity = originNode->capacity;
-    newUndo->next = originNode->next;
-
-    newUndo->data = (char*)malloc(originNode->capacity * sizeof(char));
-    if (originNode->data != NULL) {
-        strcpy(newUndo->data, originNode->data);
-    }
-    else {
-        newUndo->data[0] = '\0';
-    }
-
-    newUndo->nextUndo = curUndoNode;
-    curUndoNode = newUndo;
-}
-
 void Undo() {
     if (curUndoNode->nextUndo == NULL) {
         printf("No changes to undo.\n");
@@ -514,20 +528,137 @@ void Undo() {
     UndoNode* prevUndo = curUndoNode->nextUndo;
     Node* tempNode = curUndoNode->prev;
 
-    free(tempNode->data);
-    tempNode->data = (char*)malloc(curUndoNode->capacity * sizeof(char));
-    strcpy(tempNode->data, curUndoNode->data);
-    tempNode->capacity = curUndoNode->capacity;
-    tempNode->next = curUndoNode->next;
 
-    if (curUndoNode->newLine == true && tempNode->next != NULL) {
-        free(tempNode->next->data);
-        free(tempNode->next);
-        tempNode->next = NULL;
+    if (tempNode == NULL) {
+        printf("Error: Invalid undo state.\n");
+        return;
+    }
+
+    int tempCap = tempNode->capacity;
+    Node* tempNext = tempNode->next;
+
+    char* tempData = (char*)malloc(tempNode->capacity * sizeof(char));
+
+    if (tempNode->data != NULL) {
+        strncpy(tempData, tempNode->data, tempNode->capacity);
+    }
+    else {
+        tempData[0] = '\0';
+    }
+
+    if (tempNode->data != NULL) {
+        free(tempNode->data);
+    }
+
+    tempNode->capacity = curUndoNode->capacity;
+    tempNode->data = (char*)malloc(tempNode->capacity * sizeof(char));
+
+    if (curUndoNode->data != NULL) {
+        strncpy(tempNode->data, curUndoNode->data, tempNode->capacity);
+    }
+    else {
+        tempNode->data[0] = '\0';
+    }
+
+    if (tempNode->data == NULL) {
+        printf("Memory allocation error.\n");
+        free(tempData);
+        return;
+    }
+
+    free(curUndoNode->data);
+
+    curUndoNode->data = tempData;
+    curUndoNode->capacity = tempCap;
+    curUndoNode->next = tempNext;
+
+    if (curUndoNode->newLine == true) 
+    {
+        if (tempNode->next != NULL) {
+            if (tempNode->next->data != NULL) {
+                free(tempNode->next->data);
+            }
+            free(tempNode->next);
+            tempNode->next = NULL;
+            currentNode = tempNode;
+        }
+    }
+    else {
+        //tempNode->next = curUndoNode->next;
+        //curUndoNode->next = tempNext;
     }
 
     curUndoNode = prevUndo;
     printf("Undo completed.\n");
+}
+
+void Redo() {
+    if (headUndoNode == curUndoNode) {
+        printf("No available info to redo.\n");
+        return;
+    }
+
+    UndoNode* RedoNode = headUndoNode;
+
+    while (RedoNode != NULL && RedoNode->nextUndo != curUndoNode) {
+        RedoNode = RedoNode->nextUndo;
+    }
+
+    if (RedoNode == NULL) {
+        printf("Error: Invalid redo state.\n");
+        return;
+    }
+
+    if(RedoNode->prev == NULL) {
+        printf("Error: Invalid redo state.\n");
+        return;
+    }
+
+    Node* targetNode = RedoNode->prev;
+
+    int tempCap = targetNode->capacity;
+    Node* tempNext = targetNode->next;
+
+
+    if (RedoNode->newLine == true) {
+        Node* newNode = (Node*)malloc(sizeof(Node));
+        newNode->capacity = 20;
+        newNode->next = NULL;
+
+        newNode->data = (char*)malloc(newNode->capacity * sizeof(char));
+        newNode->data[0] = '\0';
+
+        targetNode->next = newNode;
+
+        currentNode = newNode;
+
+        RedoNode->capacity = tempCap;
+        RedoNode->next = newNode;
+    }
+    else {
+
+        char* temp = (char*)malloc(tempCap * sizeof(char));
+        if (targetNode->data != NULL) {
+            strncpy(temp, targetNode->data, tempCap);
+        }
+        else {
+            temp[0] = '\0';
+        }
+        targetNode->capacity = RedoNode->capacity;
+        targetNode->next = RedoNode->next;
+
+        free(targetNode->data);
+        targetNode->data = (char*)malloc(RedoNode->capacity * sizeof(char));
+        strcpy(targetNode->data, RedoNode->data);
+
+        free(RedoNode->data);
+        RedoNode->data = temp;
+        RedoNode->capacity = tempCap;
+        RedoNode->next = tempNext;
+    }
+
+    curUndoNode = RedoNode;
+    printf("Redo completed.\n");
 }
 
 
@@ -583,6 +714,12 @@ int main() {
             DeleteAndCut(false);
             break;
         case 9:
+            Undo();
+            break;
+        case 10:
+            Redo();
+            break;
+        case 11:
 
         {
             Node* deletingNode = head;
@@ -595,6 +732,16 @@ int main() {
                 deletingNode = currentNode;
             }
 
+            UndoNode* undoDelete = headUndoNode;
+            while (undoDelete != NULL) {
+                UndoNode* temp = undoDelete;
+                undoDelete = undoDelete->nextUndo;
+                if (temp->data != NULL) {
+                    free(temp->data);
+                }
+                free(temp);
+            }
+     
             free(past);
             return 0;
         }
