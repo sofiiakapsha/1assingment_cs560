@@ -59,7 +59,7 @@ void CreateUndoNode(Node* originNode, bool newNode) {
 
     newUndo->data = (char*)malloc(originNode->capacity * sizeof(char));
     if (originNode->data != NULL) {
-        strncpy(newUndo->data, originNode->data, originNode->capacity);
+        strcpy(newUndo->data, originNode->data);
     }
     else {
         newUndo->data[0] = '\0';
@@ -315,7 +315,7 @@ void Print() {
     }
 }
 
-void Insert() {
+void InsertPasteReplace(int choice) {
 
     int line, index;
     char* text;
@@ -323,32 +323,49 @@ void Insert() {
     Node* countingNode = head;
     int counter = 0;
 
-    text = (char*)malloc(capacity * sizeof(char));
-
     printf("Choose line and index:\n");
     scanf("%d %d", &line, &index);
 
     while (getchar() != '\n');
 
-    printf("Enter text to insert:\n");
-    fgets(text, capacity, stdin);
+    if (choice == 1 || choice == 3) {
+        text = (char*)malloc(capacity * sizeof(char));
 
-    while (text[strlen(text) - 1] != '\n') {
-        capacity += 20;
-        char* test_text = realloc(text, capacity);
+        if (choice == 1) printf("Enter text to insert:\n");
+        else printf("Enter text to replace:\n");
 
-        if (test_text == NULL) {
-            printf("Memory allocation error.\n");
-            free(text);
-            return;
+        fgets(text, capacity, stdin);
+
+        while (text[strlen(text) - 1] != '\n') {
+            capacity += 20;
+            char* test_text = realloc(text, capacity);
+
+            if (test_text == NULL) {
+                printf("Memory allocation error.\n");
+                free(text);
+                return;
+            }
+
+            text = test_text;
+            size_t lengths = strlen(text);
+            fgets(text + lengths, capacity - lengths, stdin);
         }
 
-        text = test_text;
-        size_t lengths = strlen(text);
-        fgets(text + lengths, capacity - lengths, stdin);
+        text[strlen(text) - 1] = '\0';
     }
-
-    text[strlen(text) - 1] = '\0';
+    else if (choice == 2) {
+        if (past != NULL && strlen(past) > 0) {
+            text = past;
+        }
+        else {
+            printf("Buffer is empty.\n");
+            return;
+        }
+    }
+    else {
+        printf("Invalid command.\n");
+        return;
+    }
 
     while (countingNode != NULL && counter != line) {
         countingNode = countingNode->next;
@@ -357,7 +374,9 @@ void Insert() {
 
     if (countingNode == NULL) {
         printf("Error: this line does not exist.\n");
-        free(text);
+        if (choice == 1 || choice == 3) {
+            free(text);
+        }
         return;
     }
 
@@ -369,7 +388,9 @@ void Insert() {
 
         if (index < 0 || dataLen < index) {
             printf("This index does not exist.\n");
-            free(text);
+            if (choice == 1 || choice == 3) {
+                free(text);
+            }
             return;
         }
 
@@ -389,19 +410,29 @@ void Insert() {
 
         }
 
-        for (int i = dataLen; i >= index; i--) {
-            countingNode->data[i + len] = countingNode->data[i];
+        if (choice == 1 || choice == 2) {
+
+            for (int i = dataLen; i >= index; i--) {
+                countingNode->data[i + len] = countingNode->data[i];
+            }
         }
 
+ 
         for (int i = index; i < len + index; i++) {
             countingNode->data[i] = text[i - index];
+        }
+
+        if (choice == 3 && index + len > dataLen) {
+            countingNode->data[index + len] = '\0';
         }
     }
     else {
 
         if (index != 0) {
             printf("This index does not exist. Line is empty.\n");
-            free(text);
+            if (choice == 1 || choice == 3) {
+                free(text);
+            }            
             return;
         }
 
@@ -416,7 +447,9 @@ void Insert() {
         countingNode->data[len] = '\0';
     }
 
-    free(text);
+    if (choice == 1 || choice == 3) {
+        free(text);
+    }
 }
 
 void Search() {
@@ -583,10 +616,7 @@ void Undo() {
             currentNode = tempNode;
         }
     }
-    else {
-        //tempNode->next = curUndoNode->next;
-        //curUndoNode->next = tempNext;
-    }
+    
 
     curUndoNode = prevUndo;
     printf("Undo completed.\n");
@@ -649,7 +679,8 @@ void Redo() {
 
         free(targetNode->data);
         targetNode->data = (char*)malloc(RedoNode->capacity * sizeof(char));
-        strcpy(targetNode->data, RedoNode->data);
+        strncpy(targetNode->data, RedoNode->data, RedoNode->capacity - 1);
+        targetNode->data[RedoNode->capacity - 1] = '\0';
 
         free(RedoNode->data);
         RedoNode->data = temp;
@@ -661,6 +692,60 @@ void Redo() {
     printf("Redo completed.\n");
 }
 
+void Copy() {
+    int line = 0;
+    int index = 0;
+    int number = 0;
+
+    Node* copyNode = head;
+    int counter = 0;
+
+    printf("Choose line, index and number of symbols:\n");
+    scanf("%d %d %d", &line, &index, &number);
+
+    while (getchar() != '\n');
+
+
+    while (copyNode != NULL && counter != line) {
+        copyNode = copyNode->next;
+        counter++;
+    }
+
+    if (copyNode == NULL) {
+        printf("Error: this line does not exist.\n");
+        return;
+    }
+
+
+    if (copyNode->data != NULL) {
+
+        size_t dataLen = strlen(copyNode->data);
+
+        if (index < 0 || index > dataLen || index + number > dataLen) {
+            printf("This index does not exist.\n");
+            return;
+        }
+
+        if (number > 0) {
+
+            free(past);
+            past = (char*)malloc((number + 1) * sizeof(char));
+
+            for (int i = 0; i < number; i++) {
+
+                past[i] = copyNode->data[index + i];
+            }
+
+            past[number] = '\0';
+        }
+        else {
+            printf("No data to copy.\n");
+            return;
+        }
+
+    }
+    else printf("No data in this line.\n");
+}
 
 int main() {
     currentNode = (Node*)malloc(sizeof(Node));
@@ -675,14 +760,16 @@ int main() {
     curUndoNode->prev = NULL;
     headUndoNode = curUndoNode;
 
-    past = (char*)malloc(20 * sizeof(char));
+    past = NULL;
 
     int answer;
 
     while (1) {
         printf("\nChoose the command:\n");
         printf("1 - Append, 2 - newLine, 3 - Save, 4 - Load\n");
-        printf("5 - Print,  6 - Insert,  7 - Search, 8 - Exit\n");
+        printf("5 - Print,  6 - Insert,  7 - Search, 8 - Delete\n");
+        printf("9 - Undo,  10 - Redo,  11 - Cut, 12 - Paste\n");
+        printf("13 - Copy,  14 - Replace,  15 - Exit\n");
 
         scanf("%d", &answer);
 
@@ -705,7 +792,7 @@ int main() {
             Print();
             break;
         case 6:
-            Insert();
+            InsertPasteReplace(1);
             break;
         case 7:
             Search();
@@ -720,6 +807,18 @@ int main() {
             Redo();
             break;
         case 11:
+            DeleteAndCut(true);
+            break;
+        case 12:
+            InsertPasteReplace(2);
+            break;
+        case 13:
+            Copy();
+            break;
+        case 14:
+            InsertPasteReplace(3);
+            break;
+        case 15:
 
         {
             Node* deletingNode = head;
