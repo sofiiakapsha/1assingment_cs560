@@ -65,7 +65,15 @@ void CreateUndoNode(Node* originNode, bool newNode) {
     newUndo->capacity = originNode->capacity;
     newUndo->next = originNode->next;
 
-    newUndo->data = (char*)malloc(originNode->capacity * sizeof(char));
+
+    char* tester = (char*)malloc(originNode->capacity * sizeof(char));
+
+    if (tester == NULL) {
+        printf("Memory allocation error.\n");
+        free(newNode);
+        return;
+    }
+    newUndo->data = tester;
     if (originNode->data != NULL) {
         strcpy(newUndo->data, originNode->data);
     }
@@ -304,6 +312,8 @@ void Load() {
         }
 
         fclose(file);
+        cursor.line = head;
+        cursor.index = 0;
         printf("Text has been loaded successfully.\n");
     }
 }
@@ -420,8 +430,16 @@ void InsertPasteReplace(int choice) {
 
         if (choice == 1 || choice == 2) {
 
-            for (int i = dataLen; i >= index; i--) {
-                countingNode->data[i + len] = countingNode->data[i];
+            if (dataLen > 0) {
+
+                for (int i = (int)dataLen; i >= index; i--) {
+                    countingNode->data[i + len] = countingNode->data[i];
+                }
+            }
+            else {
+                printf("Indexation error.\n");
+                free(text);
+                return;
             }
         }
 
@@ -626,6 +644,11 @@ void Undo() {
     if (curUndoNode->newLine == true) 
     {
         if (tempNode->next != NULL) {
+            if (cursor.line == tempNode->next) {
+                cursor.line = currentNode;
+                cursor.index = 0;
+            }
+
             if (tempNode->next->data != NULL) {
                 free(tempNode->next->data);
             }
@@ -635,6 +658,7 @@ void Undo() {
         }
     }
     
+    cursor.index = 0;
 
     curUndoNode = prevUndo;
     printf("Undo completed.\n");
