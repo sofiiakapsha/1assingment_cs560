@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <conio.h>
 
 typedef struct Node {
     char* data;
@@ -13,6 +14,13 @@ typedef struct Node {
 Node* currentNode;
 Node* head;
 char* past;
+
+typedef struct Cursor {
+    Node* line;
+    int index;
+}Cursor;
+
+Cursor cursor;
 
 
 typedef struct UndoNode {
@@ -227,7 +235,7 @@ void Load() {
 
     int capacityLoader = 20;
 
-    char fileName[50];
+    char fileName[100];
 
     printf("Enter file name:\n");
     scanf("%s", fileName);
@@ -317,16 +325,17 @@ void Print() {
 
 void InsertPasteReplace(int choice) {
 
-    int line, index;
+    Node* line;
+    int index;
     char* text;
     int capacity = 20;
     Node* countingNode = head;
-    int counter = 0;
 
     printf("Choose line and index:\n");
-    scanf("%d %d", &line, &index);
+    ReadingConsole();
 
-    while (getchar() != '\n');
+    line = cursor.line;
+    index = cursor.index;
 
     if (choice == 1 || choice == 3) {
         text = (char*)malloc(capacity * sizeof(char));
@@ -367,9 +376,8 @@ void InsertPasteReplace(int choice) {
         return;
     }
 
-    while (countingNode != NULL && counter != line) {
+    while (countingNode != NULL && countingNode != line) {
         countingNode = countingNode->next;
-        counter++;
     }
 
     if (countingNode == NULL) {
@@ -493,22 +501,32 @@ void Search() {
 
 void DeleteAndCut(bool cut) {
 
-    int line = 0;
-    int index = 0;
-    int number = 0;
+    Node* line = NULL;
+    int indexStart = 0;
+
+    int indexEnd = 0;
 
     Node* deletingNode = head;
-    int counter = 0;
 
-    printf("Choose line, index and number of symbols:\n");
-    scanf("%d %d %d", &line, &index, &number);
+    printf("Choose line, index for start and then for end (only in one line):\n");
 
-    while (getchar() != '\n');
-    
+    ReadingConsole();
+    line = cursor.line;
+    indexStart = cursor.index;
 
-    while (deletingNode != NULL && counter != line) {
+    ReadingConsole();
+    indexEnd = cursor.index;
+
+    if (line != cursor.line) {
+        printf("Only in one line!\n");
+        return;
+    }
+
+    int number = indexEnd - indexStart;
+
+
+    while (deletingNode != NULL && deletingNode != line) {
         deletingNode = deletingNode->next;
-        counter++;
     }
 
     if (deletingNode == NULL) {
@@ -516,13 +534,13 @@ void DeleteAndCut(bool cut) {
         return;
     }
 
-
     if (deletingNode->data != NULL) {
 
         size_t dataLen = strlen(deletingNode->data);
 
-        if (index < 0 || index > dataLen || index + number > dataLen) {
-            printf("This index does not exist.\n");
+
+        if (indexStart < 0 || indexEnd >dataLen || number <= 0) {
+            printf("Invalid selection.\n");
             return;
         }
 
@@ -535,13 +553,13 @@ void DeleteAndCut(bool cut) {
 
             for (int i = 0; i < number; i++) {
 
-                past[i] = deletingNode->data[index + i];
+                past[i] = deletingNode->data[indexStart + i];
             }
 
             past[number] = '\0';
         }
 
-        for (int i = index; i < dataLen - number; i++) {
+        for (int i = indexStart; i < dataLen - number; i++) {
             deletingNode->data[i] = deletingNode->data[i + number];
         }
 
@@ -573,7 +591,7 @@ void Undo() {
     char* tempData = (char*)malloc(tempNode->capacity * sizeof(char));
 
     if (tempNode->data != NULL) {
-        strncpy(tempData, tempNode->data, tempNode->capacity);
+        strcpy(tempData, tempNode->data);
     }
     else {
         tempData[0] = '\0';
@@ -587,7 +605,7 @@ void Undo() {
     tempNode->data = (char*)malloc(tempNode->capacity * sizeof(char));
 
     if (curUndoNode->data != NULL) {
-        strncpy(tempNode->data, curUndoNode->data, tempNode->capacity);
+        strcpy(tempNode->data, curUndoNode->data);
     }
     else {
         tempNode->data[0] = '\0';
@@ -693,22 +711,33 @@ void Redo() {
 }
 
 void Copy() {
-    int line = 0;
-    int index = 0;
-    int number = 0;
 
     Node* copyNode = head;
-    int counter = 0;
 
-    printf("Choose line, index and number of symbols:\n");
-    scanf("%d %d %d", &line, &index, &number);
+    Node* line = NULL;
+    int indexStart = 0;
 
-    while (getchar() != '\n');
+    int indexEnd = 0;
+
+    Node* deletingNode = head;
+
+    printf("Choose line, index for start and then for end (only in one line):\n");
+
+    ReadingConsole();
+    line = cursor.line;
+    indexStart = cursor.index;
+
+    ReadingConsole();
+    indexEnd = cursor.index;
+
+    if (line != cursor.line) {
+        printf("Only in one line!\n");
+        return;
+    }
 
 
-    while (copyNode != NULL && counter != line) {
+    while (copyNode != NULL && copyNode != line) {
         copyNode = copyNode->next;
-        counter++;
     }
 
     if (copyNode == NULL) {
@@ -721,8 +750,10 @@ void Copy() {
 
         size_t dataLen = strlen(copyNode->data);
 
-        if (index < 0 || index > dataLen || index + number > dataLen) {
-            printf("This index does not exist.\n");
+        int number = indexEnd - indexStart;
+
+        if (indexStart < 0 || indexEnd >dataLen || number <= 0) {
+            printf("Invalid selection.\n");
             return;
         }
 
@@ -733,7 +764,7 @@ void Copy() {
 
             for (int i = 0; i < number; i++) {
 
-                past[i] = copyNode->data[index + i];
+                past[i] = copyNode->data[indexStart + i];
             }
 
             past[number] = '\0';
@@ -747,7 +778,97 @@ void Copy() {
     else printf("No data in this line.\n");
 }
 
+void RightAndLeft(bool side) {
+    if (side) {
+        if (cursor.line->data != NULL && strlen(cursor.line->data) > cursor.index) {
+            cursor.index++;
+        }
+    }
+    else if (cursor.line->data != NULL && cursor.index - 1 >= 0) {
+        cursor.index--;
+    }
+}
+
+void UpAndDown(bool side){
+    if (side) {
+        Node* curNode = head;
+        while (curNode != NULL && curNode->next != cursor.line) {
+            curNode = curNode->next;
+        }
+        if (curNode != NULL && curNode->data != NULL) {
+            cursor.line = curNode;
+            cursor.index = 0;
+        }
+    }
+    else if (cursor.line->next != NULL && cursor.line->next->data != NULL) {
+        cursor.line = cursor.line->next;
+        cursor.index = 0;
+    }
+}
+
+void PrintWithCursor() {
+    if (head->data == NULL) {
+        printf("No current text.\n");
+    }
+    else {
+        Node* printingNode = head;
+        while (printingNode != NULL) {
+
+            if (printingNode->data != NULL) {
+
+                if (cursor.line != printingNode) {
+                    printf("%s", printingNode->data);
+                }
+
+                else {
+ 
+                    size_t len = strlen(printingNode->data);
+                    for (size_t i = 0; i < len; i++) {
+
+                        if (i == cursor.index) {
+                            printf("|");
+                        }
+                        printf("%c", printingNode->data[i]);
+                    }
+
+                    if (cursor.index == len) {
+                        printf("|");
+                    }
+                    printf("\n"); 
+                }
+            }
+            printingNode = printingNode->next;
+        }
+    }
+}
+
+void ReadingConsole() {
+
+    int ch1, ch2;
+
+    while (1) {
+        ch1 = _getch();
+
+        if (ch1 == 0xE0 || ch1 == 0) {
+            ch2 = _getch();
+
+            switch (ch2) {
+            case 72: UpAndDown(true); break;
+            case 80: UpAndDown(false);; break;
+            case 75: RightAndLeft(false); break;
+            case 77: RightAndLeft(true); break;
+            }
+
+            system("cls");
+            PrintWithCursor();
+        }
+
+        else if (ch1 == 27) break;
+    }
+}
+
 int main() {
+
     currentNode = (Node*)malloc(sizeof(Node));
     currentNode->next = NULL;
     currentNode->data = NULL;
@@ -760,6 +881,9 @@ int main() {
     curUndoNode->prev = NULL;
     headUndoNode = curUndoNode;
 
+    cursor.line = head;
+    cursor.index = 0;
+
     past = NULL;
 
     int answer;
@@ -769,7 +893,7 @@ int main() {
         printf("1 - Append, 2 - newLine, 3 - Save, 4 - Load\n");
         printf("5 - Print,  6 - Insert,  7 - Search, 8 - Delete\n");
         printf("9 - Undo,  10 - Redo,  11 - Cut, 12 - Paste\n");
-        printf("13 - Copy,  14 - Replace,  15 - Exit\n");
+        printf("13 - Copy,  14 - Replace,  15 - Move cursor, 16 - Exit\n");
 
         scanf("%d", &answer);
 
@@ -819,6 +943,10 @@ int main() {
             InsertPasteReplace(3);
             break;
         case 15:
+            ReadingConsole();
+            break;
+
+        case 16:
 
         {
             Node* deletingNode = head;
@@ -850,6 +978,5 @@ int main() {
             break;
         }
     }
-
     return 0;
 }
