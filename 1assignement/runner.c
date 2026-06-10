@@ -572,6 +572,14 @@ void Load() {
         }
     }
 
+     while (undoTop != NULL) {
+        UndoNode* clear = undoTop;
+        undoTop = clear->prev;
+        free(clear->oldData);
+        free(clear->newData);
+        free(clear);
+    }
+
     fclose(file);
     cursor.line = head;
     cursor.index = 0;
