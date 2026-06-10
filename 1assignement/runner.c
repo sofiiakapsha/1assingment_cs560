@@ -173,9 +173,10 @@ void Undo() {
             free(toDelete->data);
             free(toDelete);
 
-            int len = strlen(prev->data);
-
-            if (prev->data[len - 1] == '\n') prev->data[len - 1] = '\0';
+            if (prev->data != NULL) {
+                int len = strlen(prev->data);
+                if (len > 0 && prev->data[len - 1] == '\n') prev->data[len - 1] = '\0';
+            }
         }
     }
 
@@ -200,6 +201,7 @@ void Redo() {
 
     UndoNode* nodeUndo = redoTop;
     redoTop = nodeUndo->next;
+    if (redoTop) redoTop->prev = NULL;
 
     if (nodeUndo->op == modify) {
         Node* node = FindNodeByIndex(nodeUndo->lineIndex);
